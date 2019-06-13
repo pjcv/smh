@@ -825,7 +825,7 @@ class AcceptancePCN(jobs.Task):
 
             ax.set(xlabel=r'$n$')
             ax.set(ylabel=i == 0 and 'Acceptance Rate' or '')
-            ax.set_title(r'$\sqrt{\rho}=%0.1f$' % rho)
+            ax.set_title(r'$\rho=%0.1f$' % rho)
 
         plt.savefig(self.Outputs(params)[0],
                     bbox_inches='tight',
@@ -1056,29 +1056,40 @@ if __name__ == '__main__':
     root_jobs.append(
         jobs.Job('likelihoods_per_iteration_plot', {})
     )
-    root_jobs.append(
-        jobs.Job('ess_random_walk', {
-            'model_type': 'lr',
-            'd': 10,
-        })
-    )
-    root_jobs.append(
-        jobs.Job('ess_pcn', {
-            'model_type': 'lr',
-            'd': 10,
-        })
-    )
-    root_jobs.append(
-        jobs.Job('acceptance_pcn', {
-            'model_type': 'lr',
-            'd': 10,
-        })
-    )
+    for model, d in [
+            ('lr', 10),
+            ('lr', 20),
+            ('rlr', 10)
+    ]:
+        root_jobs.append(
+            jobs.Job('ess_random_walk', {
+                'model_type': model,
+                'd': d,
+            })
+        )
+        root_jobs.append(
+            jobs.Job('ess_pcn', {
+                'model_type': model,
+                'd': d,
+            })
+        )
+        root_jobs.append(
+            jobs.Job('acceptance_pcn', {
+                'model_type': model,
+                'd': d,
+            })
+        )
+
+    root_jobs += [
+        jobs.Job('histogram', {'d': 10, 'N': 2 ** 11}),
+        jobs.Job('histogram', {'d': 10, 'N': 2 ** 13}),
+        jobs.Job('histogram', {'d': 10, 'N': 2 ** 16}),
+    ]
+
+    '''
     root_jobs.append(
         jobs.Job('density_estimates', {})
     )
-    root_jobs += [
-        jobs.Job('histogram', {'d': 10, 'N': 2048}),
-        jobs.Job('histogram', {'d': 10, 'N': 8192}),
-    ]
+    '''
+    
     jobs.RunJobs(root_jobs)
