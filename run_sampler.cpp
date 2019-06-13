@@ -74,16 +74,10 @@ int main(int argc, char** argv) {
     assert(false);
   }
 
-  boost::timer::cpu_timer timer;
-  boost::timer::cpu_times start_time;
-  boost::timer::cpu_times end_time;
-
   if (alg_type == "fmh") {
     Json::Value alg_params = alg.get("params", Json::Value::null);
     assert(alg_params.isMember("taylor_order"));
     int taylor_order = alg_params.get("taylor_order", 1).asInt();
-
-    start_time = timer.elapsed();
     fmh(rng,
         target.get(),
         mode,
@@ -92,24 +86,17 @@ int main(int argc, char** argv) {
         theta0,
         stopping_rule.get(),
         &recorder);
-    end_time = timer.elapsed();
-
   } else if (alg_type == "mh") {
-    start_time = timer.elapsed();
     mh(rng,
        target.get(),
        proposal.get(),
        theta0,
        stopping_rule.get(),
        &recorder);
-    end_time = timer.elapsed();
-
   } else if (alg_type == "flymc") {
     Json::Value alg_params = alg.get("params", Json::Value::null);
     assert(alg_params.isMember("qdb"));
     double qdb = alg_params.get("qdb", 0.0).asDouble();
-
-    start_time = timer.elapsed();
     flymc(rng,
           target.get(),
           mode,
@@ -118,8 +105,6 @@ int main(int argc, char** argv) {
           theta0,
           stopping_rule.get(),
           &recorder);
-    end_time = timer.elapsed();
-
   } else {
     std::cerr << "unrecognized alg: " << alg << std::endl;
     return -1;
@@ -128,11 +113,10 @@ int main(int argc, char** argv) {
   H5::H5File ofh(output_filename, H5F_ACC_TRUNC);
   write_args(&ofh, "args", argc, argv);
   write_config(&ofh, root);
-  recorder.Serialize(&ofh);
+  write_doubles(&ofh, "samples", recorder.samples);
 
   int64_t num_potential_evaluations = target->NumPotentialEvaluations();
   write_int64(&ofh, "likelihood_evaluations", num_potential_evaluations);
 
-  int64_t elapsed_nanoseconds = end_time.system + end_time.user - start_time.system - start_time.user;
-  write_int64(&ofh, "nanoseconds", elapsed_nanoseconds);
+  write_int64(&ofh, "nanoseconds", recorder.elapsed_nanoseconds);
 }

@@ -23,6 +23,7 @@ class SampleRecorder : public Observer {
   {}
 
   void OnStart() {
+    start_time_ = timer_.elapsed();
   }
   
   void OnSample(const Eigen::VectorXd& s) {
@@ -30,22 +31,16 @@ class SampleRecorder : public Observer {
   }
 
   void OnComplete() {
-  }
-
-  void Serialize(H5::H5File* file) {
-    std::unique_ptr<double[]> data(new double[samples.size()]);
-    for (int i = 0; i < samples.size(); i++) {
-      data[i] = samples[i];
-    }
-    int rank = 1;
-    hsize_t dims[rank];
-    dims[0] = samples.size();
-    H5::DataSpace dataspace(rank, dims);
-    H5::DataSet dataset = file->createDataSet("samples", H5::PredType::NATIVE_DOUBLE, dataspace);
-    dataset.write(data.get(), H5::PredType::NATIVE_DOUBLE);
+    boost::timer::cpu_times end_time(timer_.elapsed());
+    elapsed_nanoseconds = end_time.system + end_time.user - start_time_.system - start_time_.user;
   }
 
   std::vector<double> samples;
+  int64_t elapsed_nanoseconds;  
+
+ private:
+  boost::timer::cpu_times start_time_;
+  boost::timer::cpu_timer timer_;
 };
 
 
@@ -66,7 +61,9 @@ class ContinuousTimeSampleRecorder : public ContinuousTimeObserver {
     accumulated_duration_ = 0;
   }
   
-  void OnStart() {}
+  void OnStart() {
+    start_time_ = timer_.elapsed();
+  }
   
   void OnSample(const Eigen::VectorXd& x, const Eigen::VectorXd& v, double duration) {
     if (v[0] == previous_v_) {
@@ -87,55 +84,20 @@ class ContinuousTimeSampleRecorder : public ContinuousTimeObserver {
     x_samples.push_back(start_x_);
     v_samples.push_back(previous_v_);
     durations.push_back(accumulated_duration_);
-  }
-
-  void Serialize(H5::H5File* file) {
-     {
-       std::unique_ptr<double[]> data(new double[x_samples.size()]);
-       for (int i = 0; i < x_samples.size(); i++) {
-         data[i] = x_samples[i];
-       }
-       int rank = 1;
-       hsize_t dims[rank];
-       dims[0] = x_samples.size();
-       H5::DataSpace dataspace(rank, dims);
-       H5::DataSet dataset = file->createDataSet("x_samples", H5::PredType::NATIVE_DOUBLE, dataspace);
-       dataset.write(data.get(), H5::PredType::NATIVE_DOUBLE);
-     }
-     
-     {
-       std::unique_ptr<double[]> data(new double[v_samples.size()]);
-       for (int i = 0; i < v_samples.size(); i++) {
-         data[i] = v_samples[i];
-       }
-       int rank = 1;
-       hsize_t dims[rank];
-       dims[0] = v_samples.size();
-       H5::DataSpace dataspace(rank, dims);
-       H5::DataSet dataset = file->createDataSet("v_samples", H5::PredType::NATIVE_DOUBLE, dataspace);
-       dataset.write(data.get(), H5::PredType::NATIVE_DOUBLE);
-     }
-     {
-       std::unique_ptr<double[]> data(new double[durations.size()]);
-       for (int i = 0; i < durations.size(); i++) {
-         data[i] = durations[i];
-       }
-       int rank = 1;
-       hsize_t dims[rank];
-       dims[0] = v_samples.size();
-       H5::DataSpace dataspace(rank, dims);
-       H5::DataSet dataset = file->createDataSet("durations", H5::PredType::NATIVE_DOUBLE, dataspace);
-       dataset.write(data.get(), H5::PredType::NATIVE_DOUBLE);
-     }
+    boost::timer::cpu_times end_time(timer_.elapsed());
+    elapsed_nanoseconds = end_time.system + end_time.user - start_time_.system - start_time_.user;
   }
 
   std::vector<double> x_samples;
   std::vector<double> v_samples;
   std::vector<double> durations;
+  int64_t elapsed_nanoseconds;  
   
  private:
   double start_x_;
   double previous_v_;
   double accumulated_duration_;
+  boost::timer::cpu_times start_time_;
+  boost::timer::cpu_timer timer_;
 };
 

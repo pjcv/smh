@@ -69,7 +69,6 @@ int main(int argc, char** argv) {
   H5::H5File ofh(output_filename, H5F_ACC_TRUNC);
   write_args(&ofh, "args", argc, argv);
   write_config(&ofh, root_config);
-  recorder.Serialize(&ofh);
 
   vector<double> discrete_samples;
   subsample_path(recorder.x_samples,
